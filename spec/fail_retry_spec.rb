@@ -33,7 +33,7 @@ describe FailRetry do
 
   context "when a method call succeeds" do
     before do
-      klass.fail_retry :call, exception: ZeroDivisionError, on_retry: -> (instance) { instance.value += 1 }
+      klass.fail_retry :call, on: ZeroDivisionError, if: -> (instance) { instance.value += 1 }
     end
 
     it "retries and return number" do
@@ -43,6 +43,7 @@ describe FailRetry do
 
   context "when an unexpected exception happened" do
     before do
+      klass.fail_retry :call, on: ArgumentError
       klass.send(:undef_method, :perform_action)
     end
 
@@ -51,9 +52,9 @@ describe FailRetry do
     end
   end
 
-  context "when a method call fails and max_retries is 0" do
+  context "when a method call fails and max is 0" do
     before do
-      klass.fail_retry :call, exception: ZeroDivisionError, max_tries: 0
+      klass.fail_retry :call, on: ZeroDivisionError, max: 0
     end
 
     it "retries without retry" do
@@ -64,7 +65,7 @@ describe FailRetry do
 
   context "when a method call fails until trial reaches max_tries" do
     before do
-      klass.fail_retry :call, exception: ZeroDivisionError, max_tries: 3
+      klass.fail_retry :call, on: ZeroDivisionError, max: 3
     end
 
     it "retries and raise error" do

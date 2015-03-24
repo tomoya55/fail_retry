@@ -8,16 +8,24 @@ module FailRetry
   end
 
   module ClassMethods
-    def fail_retry(method_name, exception: Fail, max_tries: 1, on_retry: nil)
+    def fail_retry(method_name, on: Fail, max: 1, if: nil)
       define_method("#{method_name}_with_retry") do |*args, &block|
         trial = 0
         begin
           send("#{method_name}_without_retry", *args, &block)
         rescue => e
-          raise if !e.kind_of?(exception) || trial >= max_tries
-          on_retry.call(self) if on_retry
-          trial += 1
-          retry
+          exception = on
+          if_proc = binding.local_variable_get(:if)
+          retriable = e.kind_of?(exception)
+          retriable &&= trial < max
+          retriable &&= if_proc ? if_proc.call(self) : true
+
+          if retriable
+            trial = trial.succ
+            retry
+          else
+            raise
+          end
         end
       end
 
